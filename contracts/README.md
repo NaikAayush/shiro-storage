@@ -1,4 +1,4 @@
-# Shiro Store Contracts
+# Shiro Share Contracts
 
 This project uses Hardhat.
 
