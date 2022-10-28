@@ -92,6 +92,16 @@ contract ShiroStore {
         require(validity >= 3600, "Validity must be at least an hour.");
 
         File storage file = findOrCreateFile(owner, cid);
+
+        // add to remaining validity if it wasn't deleted
+        if (
+            file.valid &&
+            !file.deleted &&
+            file.timestamp + file.validity >= block.timestamp
+        ) {
+            validity += (file.timestamp + file.validity) - block.timestamp;
+        }
+
         file.valid = true;
         file.deleted = false;
         file.cid = cid;
@@ -99,6 +109,29 @@ contract ShiroStore {
         file.validity = validity;
 
         emit NewFile(owner, cid, block.timestamp, validity);
+    }
+
+    function getFiles(address owner) public view returns (File[] memory) {
+        uint256 resultCount = 0;
+        for (uint256 idx = 0; idx < store[owner].length; ++idx) {
+            File storage file = store[owner][idx];
+            if (file.valid && !file.deleted) {
+                resultCount++;
+            }
+        }
+
+        File[] memory files = new File[](resultCount);
+
+        uint256 arrIdx = 0;
+        for (uint256 idx = 0; idx < store[owner].length; ++idx) {
+            File storage file = store[owner][idx];
+            if (file.valid && !file.deleted) {
+                files[arrIdx] = file;
+                arrIdx++;
+            }
+        }
+
+        return files;
     }
 
     function deleteFile(address owner, string memory cid) public {
@@ -116,7 +149,11 @@ contract ShiroStore {
                 ++fileIdx
             ) {
                 File storage file = store[owner][fileIdx];
-                if (file.timestamp + file.validity >= block.timestamp) {
+                if (
+                    file.valid &&
+                    !file.deleted &&
+                    file.timestamp + file.validity <= block.timestamp
+                ) {
                     deleteGivenFile(owner, file);
                 }
             }
