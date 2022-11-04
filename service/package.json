@@ -26,6 +26,12 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "ethers": "^5.7.2",
+    "ipfs-core": "^0.17.0",
+    "it-all": "^2.0.0",
+    "it-map": "^2.0.0",
+    "it-pipe": "^2.0.4",
+    "it-tar": "^6.0.1",
+    "it-to-buffer": "^3.0.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0"
