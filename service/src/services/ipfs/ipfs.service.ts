@@ -5,6 +5,7 @@ import toBuffer from 'it-to-buffer';
 import map from 'it-map';
 import all from 'it-all';
 import { Source } from 'it-stream-types';
+import { IpfsFile, StorageProvider } from 'src/interfaces/storage-provider';
 
 type IPFSType = Awaited<ReturnType<typeof import('ipfs-core').create>>;
 
@@ -19,19 +20,8 @@ async function* tarballed(source: Source<Uint8Array>) {
   });
 }
 
-export interface IpfsFile {
-  // The path you want the file to be accessible at from the root CID _after_ it has been added
-  path?: string;
-  // The contents of the file (see below for definition)
-  content?: Uint8Array;
-  // File mode to store the entry with (see https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation)
-  mode?: number | string;
-  // The modification time of the entry (see below for definition)
-  mtime?: Date;
-}
-
 @Injectable()
-export class IpfsService {
+export class IpfsService implements StorageProvider {
   private ipfs: IPFSType;
 
   async init() {
@@ -59,5 +49,10 @@ export class IpfsService {
     };
 
     return fileObj;
+  }
+
+  async upload(file: IpfsFile): Promise<string> {
+    let cid = await this.ipfs.add(file);
+    return cid.cid.toString();
   }
 }
