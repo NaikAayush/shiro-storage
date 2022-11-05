@@ -8,10 +8,8 @@ import { Source } from 'it-stream-types';
 import { IpfsFile, StorageProvider } from 'src/interfaces/storage-provider';
 import { create, IPFSHTTPClient } from 'ipfs-http-client';
 
-type IPFSType = Awaited<ReturnType<typeof import('ipfs-core').create>>;
-
 async function* tarballed(source: Source<Uint8Array>) {
-  yield* pipe(source, extract(), async function* (source) {
+  yield* pipe(source, extract(), async function*(source) {
     for await (const entry of source) {
       yield {
         ...entry,
@@ -26,13 +24,8 @@ export class IpfsService implements StorageProvider {
   private ipfs: IPFSHTTPClient;
 
   constructor() {
-    this.ipfs = create();
+    this.ipfs = create({ url: process.env.IPFS_GATEWAY_URL });
   }
-  // async init() {
-  //   const IPFS = await import('ipfs-core');
-
-  //   this.ipfs = await IPFS.create();
-  // }
 
   async get(cid: string): Promise<IpfsFile> {
     const output = await pipe(this.ipfs.get(cid), tarballed, (source) =>
@@ -57,6 +50,9 @@ export class IpfsService implements StorageProvider {
 
   async upload(file: IpfsFile): Promise<string> {
     let cid = await this.ipfs.add(file);
-    return cid.cid.toString();
+
+    let pinnedCid = await this.ipfs.pin.add(cid.cid);
+
+    return pinnedCid.toString();
   }
 }
