@@ -1,7 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-contract ShiroStore {
+struct File {
+    bool valid;
+    bool deleted;
+    string cid;
+    uint256 timestamp;
+    uint256 validity;
+}
+
+interface IShiroStore {
+    function putFile(
+        string memory cid,
+        uint256 validity
+    ) external payable;
+
+    function getFiles() external view returns (File[] memory);
+
+    function deleteFile(string memory cid) external;
+}
+
+contract ShiroStore is IShiroStore {
     event NewFile(
         address owner,
         string cid,
@@ -15,14 +34,6 @@ contract ShiroStore {
         uint256 timestamp,
         uint256 extendBy
     );
-
-    struct File {
-        bool valid;
-        bool deleted;
-        string cid;
-        uint256 timestamp;
-        uint256 validity;
-    }
 
     address[] owners;
     mapping(address => File[]) store;
@@ -83,13 +94,14 @@ contract ShiroStore {
     }
 
     function putFile(
-        address owner,
         string memory cid,
         uint256 validity
-    ) public payable {
+    ) external payable {
         require(bytes(cid).length == 46, "Invalid IPFS CID length.");
 
         require(validity >= 3600, "Validity must be at least an hour.");
+
+        address owner = msg.sender;
 
         File storage file = findOrCreateFile(owner, cid);
 
@@ -111,7 +123,9 @@ contract ShiroStore {
         emit NewFile(owner, cid, block.timestamp, validity);
     }
 
-    function getFiles(address owner) public view returns (File[] memory) {
+    function getFiles() external view returns (File[] memory) {
+        address owner = msg.sender;
+
         uint256 resultCount = 0;
         for (uint256 idx = 0; idx < store[owner].length; ++idx) {
             File storage file = store[owner][idx];
@@ -134,13 +148,15 @@ contract ShiroStore {
         return files;
     }
 
-    function deleteFile(address owner, string memory cid) public {
+    function deleteFile(string memory cid) external {
+        address owner = msg.sender;
+
         File storage file = findFile(owner, cid);
 
         deleteGivenFile(owner, file);
     }
 
-    function garbageCollect() public {
+    function garbageCollect() external {
         for (uint256 ownerIdx = 0; ownerIdx < owners.length; ++ownerIdx) {
             address owner = owners[ownerIdx];
             for (
