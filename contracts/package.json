@@ -4,6 +4,7 @@
   "version": "0.0.2",
   "files": [
     "/contracts/ShiroStore.sol",
+    "/contracts/ShiroUtils.sol",
     "!README.md"
   ],
   "author": {

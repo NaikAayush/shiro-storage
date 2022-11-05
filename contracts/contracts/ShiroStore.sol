@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import * as ShiroUtils from "./ShiroUtils.sol";
+
 struct File {
     bool valid;
     bool deleted;
@@ -41,22 +43,6 @@ contract ShiroStore is IShiroStore {
     address[] owners;
     mapping(address => File[]) store;
 
-    function memcmp(bytes memory a, bytes memory b)
-        internal
-        pure
-        returns (bool)
-    {
-        return (a.length == b.length) && (keccak256(a) == keccak256(b));
-    }
-
-    function strcmp(string memory a, string memory b)
-        internal
-        pure
-        returns (bool)
-    {
-        return memcmp(bytes(a), bytes(b));
-    }
-
     function findFile(address owner, string memory cid)
         internal
         view
@@ -64,7 +50,7 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && strcmp(file.cid, cid)) {
+            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
                 return file;
             }
         }
@@ -78,7 +64,7 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && strcmp(file.cid, cid)) {
+            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
                 return file;
             }
         }
@@ -97,12 +83,12 @@ contract ShiroStore is IShiroStore {
     }
 
     function validateStorageProvider(string memory provider) internal pure {
-        if (strcmp(provider, "ipfs")) {} else if (
-            strcmp(provider, "web3.storage")
-        ) {} else if (strcmp(provider, "nft.storage")) {} else if (
-            strcmp(provider, "pinata")
-        ) {} else if (strcmp(provider, "storj")) {} else if (
-            strcmp(provider, "estuary")
+        if (ShiroUtils.strcmp(provider, "ipfs")) {} else if (
+            ShiroUtils.strcmp(provider, "web3.storage")
+        ) {} else if (ShiroUtils.strcmp(provider, "nft.storage")) {} else if (
+            ShiroUtils.strcmp(provider, "pinata")
+        ) {} else if (ShiroUtils.strcmp(provider, "storj")) {} else if (
+            ShiroUtils.strcmp(provider, "estuary")
         ) {} else {
             revert(string.concat("invalid storage provider: ", provider));
         }
