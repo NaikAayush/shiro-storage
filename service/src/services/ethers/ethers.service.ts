@@ -7,6 +7,7 @@ import { StorageService } from '../storage/storage.service.js';
 interface NewFile {
   address: string;
   cid: string;
+  provider: string;
   timestamp: BigNumber;
   validity: BigNumber;
 }
@@ -30,15 +31,19 @@ export class EthersService {
 
     console.log('Listening for events on contract: ', this.contract.address);
 
-    this.contract.on('NewFile', (address, cid, timestamp, validity) => {
-      const info: NewFile = {
-        address,
-        cid,
-        timestamp,
-        validity,
-      };
-      this.handleNewFile(info);
-    });
+    this.contract.on(
+      'NewFile',
+      (address, cid, provider, timestamp, validity) => {
+        const info: NewFile = {
+          address,
+          cid,
+          provider,
+          timestamp,
+          validity,
+        };
+        this.handleNewFile(info);
+      },
+    );
   }
   async handleNewFile(newFile: NewFile) {
     console.log('Got a new file', newFile);
@@ -46,7 +51,7 @@ export class EthersService {
     const file = await this.ipfs.get(newFile.cid);
     console.log('content', file.content);
 
-    const uids = await this.storage.upload(file);
+    const uids = await this.storage.upload(file, newFile.provider);
     console.log('uploaded file to all storage backends', uids);
   }
 }
