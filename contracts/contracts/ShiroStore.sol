@@ -5,6 +5,7 @@ struct File {
     bool valid;
     bool deleted;
     string cid;
+    string provider;
     uint256 timestamp;
     uint256 validity;
 }
@@ -12,7 +13,8 @@ struct File {
 interface IShiroStore {
     function putFile(
         string memory cid,
-        uint256 validity
+        uint256 validity,
+        string memory provider
     ) external payable;
 
     function getFiles() external view returns (File[] memory);
@@ -24,6 +26,7 @@ contract ShiroStore is IShiroStore {
     event NewFile(
         address owner,
         string cid,
+        string provider,
         uint256 timestamp,
         uint256 validity
     );
@@ -93,13 +96,28 @@ contract ShiroStore is IShiroStore {
         emit DeleteFile(owner, file.cid, block.timestamp);
     }
 
+    function validateStorageProvider(string memory provider) internal pure {
+        if (strcmp(provider, "ipfs")) {} else if (
+            strcmp(provider, "web3.storage")
+        ) {} else if (strcmp(provider, "nft.storage")) {} else if (
+            strcmp(provider, "pinata")
+        ) {} else if (strcmp(provider, "storj")) {} else if (
+            strcmp(provider, "estuary")
+        ) {} else {
+            revert(string.concat("invalid storage provider: ", provider));
+        }
+    }
+
     function putFile(
         string memory cid,
-        uint256 validity
+        uint256 validity,
+        string memory provider
     ) external payable {
         require(bytes(cid).length == 46, "Invalid IPFS CID length.");
 
         require(validity >= 3600, "Validity must be at least an hour.");
+
+        validateStorageProvider(provider);
 
         address owner = msg.sender;
 
@@ -117,10 +135,11 @@ contract ShiroStore is IShiroStore {
         file.valid = true;
         file.deleted = false;
         file.cid = cid;
+        file.provider = provider;
         file.timestamp = block.timestamp;
         file.validity = validity;
 
-        emit NewFile(owner, cid, block.timestamp, validity);
+        emit NewFile(owner, cid, provider, block.timestamp, validity);
     }
 
     function getFiles() external view returns (File[] memory) {

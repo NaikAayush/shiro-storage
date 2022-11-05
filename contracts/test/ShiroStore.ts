@@ -19,15 +19,16 @@ describe("ShiroStore", function () {
 
     const cid = "QmNrQn4bsZgApPR6J32AXXDfVDa9xv2iBEcfUhVnR7Rp3k";
     const validity = 60 * 60 * 60;
+    const provider = "ipfs";
 
-    await ret.shiroStore.putFile(cid, validity);
+    await ret.shiroStore.putFile(cid, validity, provider);
 
-    return Object.assign(ret, { cid, validity });
+    return Object.assign(ret, { cid, validity, provider });
   }
 
   describe("Deployment", function () {
     it("Should show a newly uploaded file", async function () {
-      const { shiroStore, cid, validity } = await loadFixture(uploadNewFile);
+      const { shiroStore, cid, validity, provider } = await loadFixture(uploadNewFile);
 
       const files = await shiroStore.getFiles();
 
@@ -39,6 +40,7 @@ describe("ShiroStore", function () {
       expect(file.deleted).to.equal(false);
       expect(file.cid).to.equal(cid);
       expect(file.validity).to.equal(validity);
+      expect(file.provider).to.equal(provider);
       expect(file.timestamp).to.equal(await time.latest());
     });
 
@@ -64,6 +66,18 @@ describe("ShiroStore", function () {
       const { shiroStore, cid } = await loadFixture(uploadNewFile);
 
       await shiroStore.deleteFile(cid);
+
+      expect(shiroStore.deleteFile(cid)).to.be.revertedWith(
+        "File not found or is deleted."
+      );
+    });
+
+    it("Should not be able to double delete a file", async function () {
+      const { shiroStore, cid, validity } = await loadFixture(uploadNewFile);
+
+      expect(shiroStore.putFile(cid, validity, "brrfs")).to.be.revertedWith(
+        "invalid storage provider: brrfs"
+      );
 
       expect(shiroStore.deleteFile(cid)).to.be.revertedWith(
         "File not found or is deleted."
@@ -96,12 +110,14 @@ describe("ShiroStore", function () {
     });
 
     it("Should renew file before expiry", async function () {
-      const { shiroStore, cid, validity } = await loadFixture(uploadNewFile);
+      const { shiroStore, cid, validity, provider } = await loadFixture(
+        uploadNewFile
+      );
 
       // 1 second before expiry
       await time.setNextBlockTimestamp((await time.latest()) + validity - 1);
 
-      await shiroStore.putFile(cid, validity);
+      await shiroStore.putFile(cid, validity, provider);
 
       const files = await shiroStore.getFiles();
       expect(files.length).to.equal(1);
@@ -111,16 +127,19 @@ describe("ShiroStore", function () {
       expect(file.deleted).to.equal(false);
       expect(file.cid).to.equal(cid);
       expect(file.validity).to.equal(validity + 1);
+      expect(file.provider).to.equal(provider);
       expect(file.timestamp).to.equal(await time.latest());
     });
 
     it("Should renew file after expiry", async function () {
-      const { shiroStore, cid, validity } = await loadFixture(uploadNewFile);
+      const { shiroStore, cid, validity, provider } = await loadFixture(
+        uploadNewFile
+      );
 
       // 1 second after expiry
       await time.setNextBlockTimestamp((await time.latest()) + validity + 1);
 
-      await shiroStore.putFile(cid, validity);
+      await shiroStore.putFile(cid, validity, provider);
 
       const files = await shiroStore.getFiles();
       expect(files.length).to.equal(1);
@@ -130,6 +149,7 @@ describe("ShiroStore", function () {
       expect(file.deleted).to.equal(false);
       expect(file.cid).to.equal(cid);
       expect(file.validity).to.equal(validity);
+      expect(file.provider).to.equal(provider);
       expect(file.timestamp).to.equal(await time.latest());
     });
   });
