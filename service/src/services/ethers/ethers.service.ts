@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BigNumber, ethers } from 'ethers';
-import { readFileSync } from 'fs';
+import ShiroStore from '../../assets/ShiroStore.json' assert { type: 'json' };
 
 interface NewFile {
   address: string;
@@ -20,8 +20,11 @@ export class EthersService {
     );
 
     const contractAddress = process.env.CONTRACT_ADDRESS;
-    const abi = JSON.parse(readFileSync('abi.json', 'utf8')).abi;
-    this.contract = new ethers.Contract(contractAddress, abi, this.provider);
+    this.contract = new ethers.Contract(
+      contractAddress,
+      ShiroStore.abi,
+      this.provider,
+    );
 
     this.contract.on('NewFile', (address, cid, timestamp, validity) => {
       const info: NewFile = {
@@ -33,7 +36,6 @@ export class EthersService {
       this.handleNewFile(info);
     });
   }
-
   async handleNewFile(newFile: NewFile) {
     console.log('Got a new file', newFile);
   }

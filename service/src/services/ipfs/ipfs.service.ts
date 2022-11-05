@@ -6,11 +6,12 @@ import map from 'it-map';
 import all from 'it-all';
 import { Source } from 'it-stream-types';
 import { IpfsFile, StorageProvider } from 'src/interfaces/storage-provider';
+import { create, IPFSHTTPClient } from 'ipfs-http-client';
 
 type IPFSType = Awaited<ReturnType<typeof import('ipfs-core').create>>;
 
 async function* tarballed(source: Source<Uint8Array>) {
-  yield* pipe(source, extract(), async function*(source) {
+  yield* pipe(source, extract(), async function* (source) {
     for await (const entry of source) {
       yield {
         ...entry,
@@ -22,13 +23,16 @@ async function* tarballed(source: Source<Uint8Array>) {
 
 @Injectable()
 export class IpfsService implements StorageProvider {
-  private ipfs: IPFSType;
+  private ipfs: IPFSHTTPClient;
 
-  async init() {
-    const IPFS = await import('ipfs-core');
-
-    this.ipfs = await IPFS.create();
+  constructor() {
+    this.ipfs = create();
   }
+  // async init() {
+  //   const IPFS = await import('ipfs-core');
+
+  //   this.ipfs = await IPFS.create();
+  // }
 
   async get(cid: string): Promise<IpfsFile> {
     const output = await pipe(this.ipfs.get(cid), tarballed, (source) =>

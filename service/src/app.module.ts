@@ -1,19 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { EthersService } from './services/ethers/ethers.service';
-import { IpfsService } from './services/ipfs/ipfs.service';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { EthersService } from './services/ethers/ethers.service.js';
+import { IpfsService } from './services/ipfs/ipfs.service.js';
 
 @Module({
   imports: [ConfigModule.forRoot()],
   controllers: [AppController],
-  providers: [AppService, EthersService, {
-    provide: IpfsService, useFactory: async () => {
-      const service = new IpfsService();
-      await service.init();
-      return service;
-    }
-  }],
+  providers: [AppService, EthersService, IpfsService],
 })
-export class AppModule { }
+export class AppModule {}
