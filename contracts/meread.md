@@ -31,3 +31,15 @@ POLYGONSCAN_API_KEY=
   ```shell
   npx hardhat run scripts/deploy.ts --network matic
   ```
+
+## Publish to npm
+
+```
+npm pack
+```
+
+Check resulting `shiro-store-x.y.z.tgz` to see that it only contains the required files. Then:
+
+```
+npm publish
+```

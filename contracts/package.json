@@ -3,8 +3,7 @@
   "description": "iykyk",
   "version": "0.0.3",
   "files": [
-    "/contracts/ShiroStore.sol",
-    "/contracts/ShiroUtils.sol",
+    "/contracts/*.sol",
     "!README.md"
   ],
   "author": {
