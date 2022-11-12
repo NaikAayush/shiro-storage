@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import * as ShiroUtils from "./ShiroUtils.sol";
+import "./ShiroUtils.sol" as ShiroUtils;
+
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
 struct File {
     bool valid;
@@ -24,7 +26,7 @@ interface IShiroStore {
     function deleteFile(string memory cid) external;
 }
 
-contract ShiroStore is IShiroStore {
+contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
     event NewFile(
         address owner,
         string cid,
@@ -50,7 +52,9 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
+            if (
+                file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)
+            ) {
                 return file;
             }
         }
@@ -64,7 +68,9 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
+            if (
+                file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)
+            ) {
                 return file;
             }
         }
@@ -180,4 +186,45 @@ contract ShiroStore is IShiroStore {
             }
         }
     }
+
+    // === Chainlink automation ===
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory performData
+        )
+    {
+        upkeepNeeded = false;
+        performData = new bytes(0);
+
+        for (uint256 ownerIdx = 0; ownerIdx < owners.length; ++ownerIdx) {
+            address owner = owners[ownerIdx];
+            for (
+                uint256 fileIdx = 0;
+                fileIdx < store[owner].length;
+                ++fileIdx
+            ) {
+                File storage file = store[owner][fileIdx];
+                if (
+                    file.valid &&
+                    !file.deleted &&
+                    file.timestamp + file.validity <= block.timestamp
+                ) {
+                    upkeepNeeded = true;
+                }
+            }
+        }
+    }
+
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        this.garbageCollect();
+    }
+    // === -------------------- ===
 }
