@@ -41,7 +41,9 @@ export class EthersService {
           timestamp,
           validity,
         };
-        this.handleNewFile(info);
+        this.handleNewFile(info).catch((err) =>
+          console.log('Error in handling new file', err),
+        );
       },
     );
   }
