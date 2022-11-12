@@ -55,4 +55,12 @@ export class IpfsService implements StorageProvider {
 
     return pinnedCid.toString();
   }
+
+  async getFileSize(cid: string): Promise<number> {
+    let size = 0;
+    for await (const buf of this.ipfs.get(cid)) {
+      size += buf.byteLength;
+    }
+    return size;
+  }
 }
