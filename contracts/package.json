@@ -1,5 +1,16 @@
 {
-  "name": "hardhat-project",
+  "name": "shiro-store",
+  "description": "iykyk",
+  "version": "0.0.3",
+  "files": [
+    "/contracts/ShiroStore.sol",
+    "/contracts/ShiroUtils.sol",
+    "!README.md"
+  ],
+  "author": {
+    "name": "brr"
+  },
+  "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "dotenv": "^16.0.3",
