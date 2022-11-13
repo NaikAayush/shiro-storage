@@ -4,6 +4,8 @@ pragma solidity ^0.8.9;
 import "./ShiroUtils.sol" as ShiroUtils;
 
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 struct File {
     bool valid;
@@ -26,7 +28,13 @@ interface IShiroStore {
     function deleteFile(string memory cid) external;
 }
 
-contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
+contract ShiroStore is
+    IShiroStore,
+    AutomationCompatibleInterface,
+    ChainlinkClient
+{
+    using Chainlink for Chainlink.Request;
+
     event NewFile(
         address owner,
         string cid,
@@ -103,10 +111,9 @@ contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
     function putFile(
         string memory cid,
         uint256 validity,
-        string memory provider
+        string memory provider,
+        uint256 sizeInBytes
     ) external payable {
-        require(bytes(cid).length == 46, "Invalid IPFS CID length.");
-
         require(validity >= 3600, "Validity must be at least an hour.");
 
         validateStorageProvider(provider);
@@ -130,6 +137,17 @@ contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
         file.provider = provider;
         file.timestamp = block.timestamp;
         file.validity = validity;
+
+        uint256 price = calculatePrice(sizeInBytes);
+        require(
+            msg.value >= price,
+            string.concat(
+                "Not enough value given!. Got: ",
+                ShiroUtils.uint2str(msg.value),
+                " Wanted at least: ",
+                ShiroUtils.uint2str(price)
+            )
+        );
 
         emit NewFile(owner, cid, provider, block.timestamp, validity);
     }
@@ -194,10 +212,7 @@ contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
         external
         view
         override
-        returns (
-            bool upkeepNeeded,
-            bytes memory performData
-        )
+        returns (bool upkeepNeeded, bytes memory performData)
     {
         upkeepNeeded = false;
         performData = new bytes(0);
@@ -226,5 +241,82 @@ contract ShiroStore is IShiroStore, AutomationCompatibleInterface {
     ) external override {
         this.garbageCollect();
     }
+
     // === -------------------- ===
+
+    // === Chainlink Price Feeds + Any API ===
+    bytes32 private jobId;
+    uint256 private fee;
+    AggregatorV3Interface internal usdEthPriceFeed;
+
+    // reciprocal of cost (in USD) per byte
+    uint256 private bytePerUSD = 10 * 11;
+
+    constructor(
+        address chainlinkTokenAddr,
+        address chainlinkOracleAddr,
+        address usdEthPriceFeedAddr
+    ) {
+        setChainlinkToken(chainlinkTokenAddr);
+        setChainlinkOracle(chainlinkOracleAddr);
+        usdEthPriceFeed = AggregatorV3Interface(usdEthPriceFeedAddr);
+        jobId = "ca98366cc7314957b8c012c72f05aeeb";
+        fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
+    }
+
+    function getLatestEthUsd() internal view returns (int256) {
+        (, int256 price, , , ) = usdEthPriceFeed.latestRoundData();
+        return price;
+    }
+
+    function calculatePrice(uint256 sizeInBytes)
+        internal
+        view
+        returns (uint256)
+    {
+        int256 usdPerEth = getLatestEthUsd();
+        require(usdPerEth >= 0, "USD-ETH conversion rate cannot be negative");
+
+        return
+            (sizeInBytes * (10**usdEthPriceFeed.decimals()) * (10**18)) /
+            (bytePerUSD * uint256(usdPerEth));
+    }
+
+    function requestFilePriceUSD(string memory cid)
+        internal
+        returns (bytes32 requestId)
+    {
+        Chainlink.Request memory req = buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfillFilePriceUSD.selector
+        );
+
+        // Set the URL to perform the GET request on
+        req.add(
+            "get",
+            string.concat(
+                "http://storage.shiro.network/estimatePrice?cid=",
+                cid
+            )
+        );
+
+        req.add("path", "price");
+
+        req.addInt("times", 1);
+
+        // Sends the request
+        return sendChainlinkRequest(req, fee);
+    }
+
+    function fulfillFilePriceUSD(bytes32 _requestId, uint256 _volume)
+        public
+        recordChainlinkFulfillment(_requestId)
+    {}
+
+    //     function withdrawLink() public onlyOwner {
+    //     LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+    //     require(link.transfer(msg.sender, link.balanceOf(address(this))), 'Unable to transfer');
+    // }
+    // === ---------------- ===
 }
