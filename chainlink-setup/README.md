@@ -21,7 +21,7 @@ Assuming debian-based system.
         POSTGRES_PASSWORD=password
         POSTGRES_DB=chainlink
         ```
-    - `chainlink.env` (make sure to replace `ETH_CHAIN_ID` and `ETH_URL` accordingly):
+    - `chainlink.env` (make sure to replace `ETH_CHAIN_ID` and `ETH_URL` accordingly. Note `ETH_URL` needs to be websocket.):
         ```
         ROOT=/chainlink
         LOG_LEVEL=debug
@@ -52,3 +52,8 @@ Assuming debian-based system.
     ```
     docker-compose ps
     ```
+- Use ssh tunneling to access UI. For example, on GCP:
+    ```
+    gcloud compute ssh $INSTANCE_NAME -- -L 6688:localhost:6688
+    ```
+- Use API username/password from above one time setup commands to login on [`http://localhost:6688/`](http://localhost:6688/).
