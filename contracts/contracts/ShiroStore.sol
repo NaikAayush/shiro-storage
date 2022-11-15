@@ -8,7 +8,7 @@ import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
-import "./vendor/JsmnSolLib.sol";
+// import "./vendor/JsmnSolLib.sol";
 
 struct File {
     bool valid;
@@ -281,7 +281,7 @@ contract ShiroStore is
         setChainlinkToken(chainlinkTokenAddr);
         setChainlinkOracle(chainlinkOracleAddr);
         usdEthPriceFeed = AggregatorV3Interface(usdEthPriceFeedAddr);
-        jobId = "dabeb1d0dab342c8ac8093a47345a632";
+        jobId = "cfae815beb984893b8bbc65b8cd8e63b";
         fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
     }
 
@@ -406,6 +406,10 @@ contract ShiroStore is
             link.transfer(msg.sender, link.balanceOf(address(this))),
             "Unable to transfer"
         );
+    }
+
+    function setJobId(bytes32 _jobId) public onlyOwner {
+        jobId = _jobId;
     }
     // === ---------------- ===
 }
