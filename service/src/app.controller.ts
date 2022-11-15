@@ -48,6 +48,8 @@ export class AppController {
       );
     }
 
+    owner = "0x" + owner;
+
     const size = await this.ipfs.getFileSize(cid);
     return { size: size, cid, owner, validity };
   }
