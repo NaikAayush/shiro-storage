@@ -171,6 +171,8 @@ contract ShiroStore is
         file.validity = validity;
         file.value = value;
         file.sizeInBytes = sizeInBytes;
+
+        requestFileSize(owner, cid, validity);
     }
 
     function getFiles() external view returns (File[] memory) {
@@ -279,7 +281,7 @@ contract ShiroStore is
         setChainlinkToken(chainlinkTokenAddr);
         setChainlinkOracle(chainlinkOracleAddr);
         usdEthPriceFeed = AggregatorV3Interface(usdEthPriceFeedAddr);
-        jobId = "5b0bcc31a1534b068585940dea95dfe5";
+        jobId = "dabeb1d0dab342c8ac8093a47345a632";
         fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
     }
 
@@ -319,7 +321,7 @@ contract ShiroStore is
         req.add(
             "get",
             string.concat(
-                "http://storage.shiro.network/fileSize?cid=",
+                "https://storage.shiro.network/fileSize?cid=",
                 cid,
                 "&",
                 "owner=",
