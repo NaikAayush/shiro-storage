@@ -23,6 +23,20 @@ export class AppController {
   }
 
   // Returns price of storing the given CID.
+  @Get('fileSizeOnly')
+  async fileSizeOnly(@Query('cid') cid?: string) {
+    if (cid === null || cid === undefined) {
+      throw new HttpException(
+        '`cid` was not given in query',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const size = await this.ipfs.getFileSize(cid);
+    return { size, cid };
+  }
+
+  // Returns price of storing the given CID.
+  // NOTE: used by chainlink job, don't change.
   @Get('fileSize')
   async fileSize(
     @Query('cid') cid?: string,
@@ -48,7 +62,7 @@ export class AppController {
       );
     }
 
-    owner = "0x" + owner;
+    owner = '0x' + owner;
 
     const size = await this.ipfs.getFileSize(cid);
     return { size: size, cid, owner, validity };
