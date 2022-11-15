@@ -4,6 +4,7 @@ async function main() {
   const chainlinkTokenAddr = process.env.CHAINLINK_TOKEN_ADDR!;
   const chainlinkOracleAddr = process.env.CHAINLINK_ORACLE_ADDR!;
   const chainlinkUsdEthPriceFeedAddr = process.env.CHAINLINK_USD_ETH_PRICE_FEED_ADDR!;
+  console.log(chainlinkTokenAddr, chainlinkOracleAddr, chainlinkUsdEthPriceFeedAddr);
   const ShiroStore = await ethers.getContractFactory("ShiroStore");
   const shiroStore = await ShiroStore.deploy(chainlinkTokenAddr, chainlinkOracleAddr, chainlinkUsdEthPriceFeedAddr);
   await shiroStore.deployed();
