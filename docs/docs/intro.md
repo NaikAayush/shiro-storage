@@ -3,18 +3,17 @@ sidebar_position: 1
 slug: /
 ---
 
-# Shiro
+# Shiro Storage
 
-Shiro is a storage ecosystem with a focus on ease-of-use and simplicity (for the user).
+<!-- A storage platform to upload files using only client and contract code - no web2 services necessary! -->
 
-## The Network
+A platform that helps you build decentralized apps which need to store files - of any kind.
 
-The Shiro Network has these projects:
-- [**Shiro Share**](https://share.shiro.network): a simple, fast and convenient **instant file sharing platform**. No wallet necessary (you can use one if you have). Files are kept long-term.
-- **Shiro Storage**: a storage platform to upload files using only client and contract code - no web2 services necessary! Shiro Share is powered by Shiro Storage.
+You don't need to set up any "web2" APIs, services or daemons. All you need is a Solidity contract and a client that calls it.
 
-## Getting Started
+## Why?
 
-If you're looking to upload files to share with others, you don't need to set up anything - just head over to [Shiro Share](https://share.shiro.network) and start uploading.
+There was a lack of storage platforms for the decentralized web that could work with only a client and a contract.
 
-If you want to manage files in your decentralized app and don't want anything more than a frontend and a Solidity contract, see [Shiro Storage](#).
+For example, IPFS practically requires you to host a node yourself or use a provider to pin it if you need the file later. Services like web3.storage require you to pay in USD and cannot be done via a contract function call.
+
