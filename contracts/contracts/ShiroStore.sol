@@ -1,22 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import * as ShiroUtils from "./ShiroUtils.sol";
+import "./ShiroUtils.sol" as ShiroUtils;
+
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+
+// import "./vendor/JsmnSolLib.sol";
 
 struct File {
     bool valid;
     bool deleted;
+    bool rejected;
     string cid;
     string provider;
     uint256 timestamp;
     uint256 validity;
+    uint256 value;
+    uint256 sizeInBytes;
 }
 
 interface IShiroStore {
     function putFile(
         string memory cid,
         uint256 validity,
-        string memory provider
+        string memory provider,
+        uint256 sizeInBytes
     ) external payable;
 
     function getFiles() external view returns (File[] memory);
@@ -24,15 +35,31 @@ interface IShiroStore {
     function deleteFile(string memory cid) external;
 }
 
-contract ShiroStore is IShiroStore {
+contract ShiroStore is
+    IShiroStore,
+    AutomationCompatibleInterface,
+    ChainlinkClient,
+    ConfirmedOwner
+{
+    using Chainlink for Chainlink.Request;
+
     event NewFile(
         address owner,
         string cid,
         string provider,
         uint256 timestamp,
-        uint256 validity
+        uint256 validity,
+        uint256 value,
+        uint256 sizeInBytes
     );
     event DeleteFile(address owner, string cid, uint256 timestamp);
+    event RejectFile(
+        address owner,
+        string cid,
+        uint256 timestamp,
+        uint256 givenSize,
+        uint256 expectedSize
+    );
     event ExtendLife(
         address owner,
         string cid,
@@ -50,7 +77,7 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
+            if (isFileAvailable(file) && ShiroUtils.strcmp(file.cid, cid)) {
                 return file;
             }
         }
@@ -64,7 +91,7 @@ contract ShiroStore is IShiroStore {
     {
         for (uint256 i = 0; i < store[owner].length; ++i) {
             File storage file = store[owner][i];
-            if (file.valid && !file.deleted && ShiroUtils.strcmp(file.cid, cid)) {
+            if (isFileAvailable(file) && ShiroUtils.strcmp(file.cid, cid)) {
                 return file;
             }
         }
@@ -94,38 +121,58 @@ contract ShiroStore is IShiroStore {
         }
     }
 
+    function isFileAvailable(File storage file) internal view returns (bool) {
+        return file.valid && !file.deleted && !file.rejected;
+    }
+
     function putFile(
         string memory cid,
         uint256 validity,
-        string memory provider
+        string memory provider,
+        uint256 sizeInBytes
     ) external payable {
-        require(bytes(cid).length == 46, "Invalid IPFS CID length.");
-
         require(validity >= 3600, "Validity must be at least an hour.");
 
         validateStorageProvider(provider);
 
         address owner = msg.sender;
 
+        uint256 price = calculatePrice(sizeInBytes, validity);
+        require(
+            msg.value >= price,
+            string.concat(
+                "Not enough value given!. Got: ",
+                ShiroUtils.uint2str(msg.value),
+                " Wanted at least: ",
+                ShiroUtils.uint2str(price)
+            )
+        );
+
         File storage file = findOrCreateFile(owner, cid);
 
+        uint256 value = msg.value;
         // add to remaining validity if it wasn't deleted
         if (
-            file.valid &&
-            !file.deleted &&
+            isFileAvailable(file) &&
             file.timestamp + file.validity >= block.timestamp
         ) {
-            validity += (file.timestamp + file.validity) - block.timestamp;
+            uint256 remainingValidity = (file.timestamp + file.validity) -
+                block.timestamp;
+            value += file.value * (remainingValidity / file.validity);
+            validity += remainingValidity;
         }
 
         file.valid = true;
         file.deleted = false;
+        file.rejected = false;
         file.cid = cid;
         file.provider = provider;
         file.timestamp = block.timestamp;
         file.validity = validity;
+        file.value = value;
+        file.sizeInBytes = sizeInBytes;
 
-        emit NewFile(owner, cid, provider, block.timestamp, validity);
+        requestFileSize(owner, cid, validity);
     }
 
     function getFiles() external view returns (File[] memory) {
@@ -134,7 +181,7 @@ contract ShiroStore is IShiroStore {
         uint256 resultCount = 0;
         for (uint256 idx = 0; idx < store[owner].length; ++idx) {
             File storage file = store[owner][idx];
-            if (file.valid && !file.deleted) {
+            if (isFileAvailable(file)) {
                 resultCount++;
             }
         }
@@ -144,7 +191,7 @@ contract ShiroStore is IShiroStore {
         uint256 arrIdx = 0;
         for (uint256 idx = 0; idx < store[owner].length; ++idx) {
             File storage file = store[owner][idx];
-            if (file.valid && !file.deleted) {
+            if (isFileAvailable(file)) {
                 files[arrIdx] = file;
                 arrIdx++;
             }
@@ -171,8 +218,7 @@ contract ShiroStore is IShiroStore {
             ) {
                 File storage file = store[owner][fileIdx];
                 if (
-                    file.valid &&
-                    !file.deleted &&
+                    isFileAvailable(file) &&
                     file.timestamp + file.validity <= block.timestamp
                 ) {
                     deleteGivenFile(owner, file);
@@ -180,4 +226,190 @@ contract ShiroStore is IShiroStore {
             }
         }
     }
+
+    // === Chainlink automation ===
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        upkeepNeeded = false;
+        performData = new bytes(0);
+
+        for (uint256 ownerIdx = 0; ownerIdx < owners.length; ++ownerIdx) {
+            address owner = owners[ownerIdx];
+            for (
+                uint256 fileIdx = 0;
+                fileIdx < store[owner].length;
+                ++fileIdx
+            ) {
+                File storage file = store[owner][fileIdx];
+                if (
+                    isFileAvailable(file) &&
+                    file.timestamp + file.validity <= block.timestamp
+                ) {
+                    upkeepNeeded = true;
+                }
+            }
+        }
+    }
+
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        this.garbageCollect();
+    }
+
+    // === -------------------- ===
+
+    // === Chainlink Price Feeds + Any API ===
+    bytes32 private jobId;
+    uint256 private fee;
+    AggregatorV3Interface internal usdEthPriceFeed;
+
+    // reciprocal of cost (in USD) per byte per 1000 hours
+    uint256 private bytePerUSD = 10 * 11;
+
+    constructor(
+        address chainlinkTokenAddr,
+        address chainlinkOracleAddr,
+        address usdEthPriceFeedAddr
+    ) ConfirmedOwner(msg.sender) {
+        setChainlinkToken(chainlinkTokenAddr);
+        setChainlinkOracle(chainlinkOracleAddr);
+        usdEthPriceFeed = AggregatorV3Interface(usdEthPriceFeedAddr);
+        jobId = "cfae815beb984893b8bbc65b8cd8e63b";
+        fee = (1 * LINK_DIVISIBILITY) / 10; // 0,1 * 10**18 (Varies by network and job)
+    }
+
+    function getLatestEthUsd() internal view returns (int256) {
+        (, int256 price, , , ) = usdEthPriceFeed.latestRoundData();
+        return price;
+    }
+
+    // validity in seconds
+    function calculatePrice(uint256 sizeInBytes, uint256 validity)
+        internal
+        view
+        returns (uint256)
+    {
+        int256 usdPerEth = getLatestEthUsd();
+        require(usdPerEth >= 0, "USD-ETH conversion rate cannot be negative");
+
+        return
+            (sizeInBytes *
+                (10**usdEthPriceFeed.decimals()) *
+                (10**18) *
+                validity) / (bytePerUSD * uint256(usdPerEth) * 1000 * 3600);
+    }
+
+    function requestFileSize(
+        address owner,
+        string memory cid,
+        uint256 validity
+    ) internal returns (bytes32 requestId) {
+        Chainlink.Request memory req = buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfillFileSize.selector
+        );
+
+        // Set the URL to perform the GET request on
+        req.add(
+            "get",
+            string.concat(
+                "https://storage.shiro.network/fileSize?cid=",
+                cid,
+                "&",
+                "owner=",
+                ShiroUtils.toAsciiString(owner),
+                "&",
+                "validity=",
+                ShiroUtils.uint2str(validity)
+            )
+        );
+
+        // Sends the request
+        return sendChainlinkRequest(req, fee);
+    }
+
+    function fulfillFileSize(
+        bytes32 requestId,
+        address owner,
+        string memory cid,
+        uint256 size,
+        uint256 validity
+    ) public recordChainlinkFulfillment(requestId) {
+        File storage file = findOrCreateFile(owner, cid);
+
+        if (size != file.sizeInBytes) {
+            // TODO: find a way to return payment back to user.
+            emit RejectFile(
+                owner,
+                cid,
+                block.timestamp,
+                file.sizeInBytes,
+                size
+            );
+            file.rejected = true;
+        } else {
+            emit NewFile(
+                owner,
+                cid,
+                file.provider,
+                block.timestamp,
+                validity,
+                file.value,
+                file.sizeInBytes
+            );
+        }
+    }
+
+    // function requestFilePriceUSD(string memory cid)
+    //     internal
+    //     returns (bytes32 requestId)
+    // {
+    //     Chainlink.Request memory req = buildChainlinkRequest(
+    //         jobId,
+    //         address(this),
+    //         this.fulfillFilePriceUSD.selector
+    //     );
+
+    //     // Set the URL to perform the GET request on
+    //     req.add(
+    //         "get",
+    //         string.concat(
+    //             "http://storage.shiro.network/estimatePrice?cid=",
+    //             cid
+    //         )
+    //     );
+
+    //     req.add("path", "price");
+
+    //     req.addInt("times", 1);
+
+    //     // Sends the request
+    //     return sendChainlinkRequest(req, fee);
+    // }
+
+    // function fulfillFilePriceUSD(bytes32 _requestId, uint256 _volume)
+    //     public
+    //     recordChainlinkFulfillment(_requestId)
+    // {}
+
+    function withdrawLink() public onlyOwner {
+        LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+        require(
+            link.transfer(msg.sender, link.balanceOf(address(this))),
+            "Unable to transfer"
+        );
+    }
+
+    function setJobId(bytes32 _jobId) public onlyOwner {
+        jobId = _jobId;
+    }
+    // === ---------------- ===
 }
