@@ -7,7 +7,7 @@ slug: /
 
 <!-- A storage platform to upload files using only client and contract code - no web2 services necessary! -->
 
-A platform that helps you build decentralized apps which need to store files - of any kind.
+A platform for decentralized apps to store files - of any kind.
 
 You don't need to set up any "web2" APIs, services or daemons. All you need is a Solidity contract and a client that calls it.
 
