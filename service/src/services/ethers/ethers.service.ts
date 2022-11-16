@@ -10,6 +10,8 @@ interface NewFile {
   provider: string;
   timestamp: BigNumber;
   validity: BigNumber;
+  value: BigNumber;
+  sizeInBytes: BigNumber;
 }
 
 @Injectable()
@@ -33,13 +35,15 @@ export class EthersService {
 
     this.contract.on(
       'NewFile',
-      (address, cid, provider, timestamp, validity) => {
+      (address, cid, provider, timestamp, validity, value, sizeInBytes) => {
         const info: NewFile = {
           address,
           cid,
           provider,
           timestamp,
           validity,
+          value,
+          sizeInBytes,
         };
         this.handleNewFile(info).catch((err) =>
           console.log('Error in handling new file', err),
