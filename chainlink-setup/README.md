@@ -31,6 +31,8 @@ Assuming debian-based system.
         ALLOW_ORIGINS=*
         ETH_URL=<<<REPLACE_THIS>>>
         DATABASE_URL=postgresql://postgres:password@postgres:5432/chainlink?sslmode=disable
+        MIN_OUTGOING_CONFIRMATIONS=1
+        ETH_FINALITY_DEPTH=1
         ```
 - One time setup:
     ```

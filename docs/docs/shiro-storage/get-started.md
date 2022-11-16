@@ -193,3 +193,10 @@ Ensure that the file is uploaded to the Shiro Relay. Not uploading it to this re
             - The `price` key has the price in wei as a string.
     - See [pricing details](./pricing.md) for more information on how pricing is calculated.
 - Call the function in your contract which calls `shiroStore.putFile` with the options: `{ value: "<price>" }` replacing `<price>` with the price calculated in the previous step.
+
+## Examples
+
+TODO: a minimal example.
+
+See [Shiro Share](https://github.com/NaikAayush/shiro-share) as an example of a real app using Shiro Storage as a backend.
+

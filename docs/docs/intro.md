@@ -11,7 +11,7 @@ Shiro is a storage ecosystem with a focus on ease-of-use and simplicity (for the
 
 The Shiro Network has these projects:
 - [**Shiro Share**](https://share.shiro.network): a simple, fast and convenient **instant file sharing platform**. No wallet necessary (you can use one if you have). Files are kept long-term.
-- **Shiro Storage**: a storage platform to upload files using only client and contract code - no web2 services necessary!
+- **Shiro Storage**: a storage platform to upload files using only client and contract code - no web2 services necessary! Shiro Share is powered by Shiro Storage.
 
 ## Getting Started
 
