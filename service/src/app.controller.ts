@@ -100,9 +100,11 @@ export class AppController {
     const numerator = size
       .mul(BigNumber.from(10).pow(priceFeedDecimals))
       .mul(BigNumber.from(10).pow(18))
-      .mul(validity)
+      .mul(validity);
     const denom = bytePerUsd.mul(usdPerEth).mul(1000).mul(3600);
-    const price = numerator.div(denom);
+    const price = numerator
+      .div(denom)
+      .add(BigNumber.from(30).mul(BigNumber.from(10).pow(9)));
     console.log(numerator.toString(), denom.toString(), price.toString());
 
     console.log(
