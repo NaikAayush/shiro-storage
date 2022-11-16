@@ -57,3 +57,12 @@ Assuming debian-based system.
     gcloud compute ssh $INSTANCE_NAME -- -L 6688:localhost:6688
     ```
 - Use API username/password from above one time setup commands to login on [`http://localhost:6688/`](http://localhost:6688/).
+
+### Fulfilling requests
+
+Follow [the docs](https://docs.chain.link/docs/fulfilling-requests/#deploy-your-own-oracle-contract) with some important changes:
+- Use [`Operator.sol`](https://github.com/smartcontractkit/chainlink/blob/48e251901d90b8d1c9a87de856f93d9c75e8d12b/contracts/src/v0.7/Operator.sol) instead of `Oracle.sol`
+    - Use `setAuthorizedSenders` to authorize the node's address
+    - Use the deployed address of this contract in place of Oracle address everywhere - especially `contractAddress` in the job spec.
+- Add a new job using the [`jobspec.toml`](./jobspec.toml) - change things as needed.
+
