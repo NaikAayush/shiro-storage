@@ -18,4 +18,11 @@ Soon.
 
 ### Mumbai testnet
 
-Contract address: `0xa7d14Ef4Ca44a1218efbba9E103E5Ad049dE7198`
+Contract address: `0x039a4697C8B6CD4dE6D2C0aef690e8c9073b67a6`
+
+# IPFS Relay
+
+URL of IPFS relay: `https://ipfs.shiro.network/api/v0`
+
+All files must first be uploaded to this relay before calling `putFile` on the contract.
+

@@ -174,4 +174,22 @@ contract ExampleFileUploader {
 
 ## Client
 
+Broadly, the client needs to follow this process to upload a file:
+- Upload the file to the [Shiro IPFS Relay](./contract-addresses.md#ipfs-relay).
 
+:::caution
+Ensure that the file is uploaded to the Shiro Relay. Not uploading it to this relay may lead to the file not being pinned.
+:::
+
+- Calculate size of the file. This needs to be the file as seen by IPFS.
+    - There is a helper API endpoint for it: `https://storage.shiro.network/fileSizeOnly?cid=<cid>`. For example: `https://storage.shiro.network/fileSizeOnly?cid=QmRxyew9ujdcByPwNaB8EVK8S5TBvJiRGuKPNEAvVMuGAm`. This returns a JSON with the `size` key having the size in bytes.
+- Calculate the price.
+    - There are two ways to do this:
+        1. The contract will revert execution with an error indicating the needed price.
+            - Example: `execution reverted: Not enough value given!. Got: 0 Wanted at least: 337964`
+            - The last number is the actual price needed. Though, make sure to provide a bit higher value because of market volatility.
+        2. Use the helper API: `https://storage.shiro.network/estimatePrice?cid=<cid>&validity=<validity-in-seconds>`
+            - Example: `https://storage.shiro.network/estimatePrice?cid=QmRxyew9ujdcByPwNaB8EVK8S5TBvJiRGuKPNEAvVMuGAm&validity=3600000`
+            - The `price` key has the price in wei as a string.
+    - See [pricing details](./pricing.md) for more information on how pricing is calculated.
+- Call the function in your contract which calls `shiroStore.putFile` with the options: `{ value: "<price>" }` replacing `<price>` with the price calculated in the previous step.
