@@ -271,7 +271,7 @@ contract ShiroStore is
     AggregatorV3Interface internal usdEthPriceFeed;
 
     // reciprocal of cost (in USD) per byte per 1000 hours
-    uint256 private bytePerUSD = 10 * 11;
+    uint256 private bytePerUSD = 10 ** 10;
 
     constructor(
         address chainlinkTokenAddr,
