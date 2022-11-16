@@ -1,0 +1,50 @@
+type            = "directrequest"
+schemaVersion   = 1
+contractAddress     = "0x462658160829A3252Ce284dF56b3174E92aCAe7e"
+# Optional externalJobID: Automatically generated if unspecified
+# externalJobID   = "0EEC7E1D-D0D2-476C-A1A8-72DFB6633F46"
+observationSource   = """
+// First, we parse the request log and the CBOR payload inside of it
+decode_log   [type="ethabidecodelog"
+              abi="OracleRequest(bytes32 indexed specId, address requester, bytes32 requestId, uint256 payment, address callbackAddr, bytes4 callbackFunctionId, uint256 cancelExpiration, uint256 dataVersion, bytes data)"
+              data="$(jobRun.logData)"
+              topics="$(jobRun.logTopics)"]
+decode_cbor  [type="cborparse" data="$(decode_log.data)"]
+
+fetch [type="http" method=GET url="$(decode_cbor.get)" allowunrestrictednetworkaccess="true"]
+
+decode_log -> decode_cbor -> fetch
+
+fetch -> owner_parse
+fetch -> cid_parse
+fetch -> size_parse
+fetch -> validity_parse
+
+// Then, we use the decoded request parameters to make an HTTP fetch
+owner_parse [type="jsonparse" path="owner" data="$(fetch)"]
+cid_parse [type="jsonparse" path="cid" data="$(fetch)"]
+size_parse [type="jsonparse" path="size" data="$(fetch)"]
+validity_parse [type="jsonparse" path="validity" data="$(fetch)"]
+
+owner_parse -> encode_response
+cid_parse -> encode_response
+size_parse -> encode_response
+validity_parse -> encode_response
+
+// Finally, we send a response on-chain.
+// Note that single-word responses automatically populate
+// the requestId.
+encode_response [type="ethabiencode"
+                 abi="(bytes32 requestId, address owner, string cid, uint256 size, uint256 validity)"
+                 data="{\\"requestId\\": $(decode_log.requestId), \\"owner\\": $(owner_parse), \\"cid\\": $(cid_parse), \\"size\\": $(size_parse), \\"validity\\": $(validity_parse)}"
+                ]
+
+encode_tx    [type="ethabiencode"
+              abi="fulfillOracleRequest2(bytes32 requestId, uint256 payment, address callbackAddress, bytes4 callbackFunctionId, uint256 expiration, bytes calldata data)"
+              data="{\\"requestId\\": $(decode_log.requestId), \\"payment\\":   $(decode_log.payment), \\"callbackAddress\\": $(decode_log.callbackAddr), \\"callbackFunctionId\\": $(decode_log.callbackFunctionId), \\"expiration\\": $(decode_log.cancelExpiration), \\"data\\": $(encode_response)}"
+             ]
+
+submit_tx  [type="ethtx" to="0x462658160829A3252Ce284dF56b3174E92aCAe7e" data="$(encode_tx)"]
+
+encode_response -> encode_tx -> submit_tx
+"""
