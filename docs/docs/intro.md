@@ -17,3 +17,14 @@ There was a lack of storage platforms for the decentralized web that could work 
 
 For example, IPFS practically requires you to host a node yourself or use a provider to pin it if you need the file later. Services like web3.storage require you to pay in USD and cannot be done via a contract function call.
 
+## Who is it for?
+
+Anyone developing a decentralized app that needs to store files.
+
+## How do I use it?
+
+See [Getting started](./get-started.md)
+
+## How does it work?
+
+See [Architecture](./architecture.md)

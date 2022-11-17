@@ -79,6 +79,8 @@ Use `shiroStore.putFile` to upload a file. The parameters are:
 - `string provider`: one of the available [providers' name](./providers.md). Use `ipfs` if you're not sure.
 - `uint256 sizeInBytes`: file size. Must be accurate as seen by IPFS or it could lead to the file not being pinned correctly. We will see in the client set up how to get the accurate value of this.
 
+Note that you also need to pass in the transaction value (payment) to this function call.
+
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
@@ -98,7 +100,7 @@ contract ExampleFileUploader {
         uint256 validity = 3600 * 1000;
         // IPFS is a safe bet
         string memory provider = "ipfs";
-        shiroStore.putFile(cid, validity, provider, sizeInBytes);
+        shiroStore.putFile{value: msg.value}(cid, validity, provider, sizeInBytes);
     }
     // highlight-end
 }
@@ -124,7 +126,7 @@ contract ExampleFileUploader {
         uint256 validity = 3600 * 1000;
         // IPFS is a safe bet
         string memory provider = "ipfs";
-        shiroStore.putFile(cid, validity, provider, sizeInBytes);
+        shiroStore.putFile{value: msg.value}(cid, validity, provider, sizeInBytes);
     }
 
     // highlight-start
@@ -156,7 +158,7 @@ contract ExampleFileUploader {
         uint256 validity = 3600 * 1000;
         // IPFS is a safe bet
         string memory provider = "ipfs";
-        shiroStore.putFile(cid, validity, provider, sizeInBytes);
+        shiroStore.putFile{value: msg.value}(cid, validity, provider, sizeInBytes);
     }
 
     function doSomething() external view {

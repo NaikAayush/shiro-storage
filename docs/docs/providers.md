@@ -18,13 +18,11 @@ Files are uploaded to an IPFS server which is connected to the wider IPFS networ
 
 This is the default one to choose if you're not sure.
 
-## web3.storage (coming soon)
+## web3.storage
 
 - Name: `web3.storage`
 
 Uploads to [web3.storage](https://web3.storage).
-
-Coming soon.
 
 ## nft.storage (coming soon)
 
