@@ -1,22 +1,44 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
+  Post,
   Query,
 } from '@nestjs/common';
 import { BigNumber } from 'ethers';
 import { AppService } from './app.service.js';
+import { EmailBody } from './interfaces/email-body.js';
 import { IpfsService } from './services/ipfs/ipfs.service.js';
+import { SendgridService } from './services/sendgrid/sendgrid.service.js';
+import { createClient, RedisClientType } from 'redis';
+import { FileNameBody } from './interfaces/filename-body.js';
 
 const PRICE_PER_GB_USD: number = 0.01;
 
 @Controller()
 export class AppController {
+  redisClient: RedisClientType;
+
   constructor(
     private readonly appService: AppService,
     private readonly ipfs: IpfsService,
-  ) { }
+    private readonly sendGrid: SendgridService,
+  ) {
+    this.startRedis();
+  }
+
+  async startRedis() {
+    this.redisClient = createClient({
+      url: 'redis://localhost:6379',
+      password: process.env.REDIS_PASSWORD,
+    });
+    this.redisClient.on('error', (err) =>
+      console.log('Redis Client Error', err),
+    );
+    await this.redisClient.connect();
+  }
 
   @Get()
   getHello(): string {
@@ -111,5 +133,28 @@ export class AppController {
       `estimate (${cid}) - size: ${size} bytes (${sizeGB} GB), price: ${price}`,
     );
     return { price: price.toString() };
+  }
+
+  // Send emails using SendGrid
+  @Post('email')
+  async sendEmail(@Body() data: EmailBody) {
+    return this.sendGrid.sendMail(data);
+  }
+
+  // Returns Filename for a given CID
+  @Get('fileName')
+  async getFileName(@Query('cid') cid?: string) {
+    return {
+      cid: cid,
+      status: await this.redisClient.get(cid),
+    };
+  }
+
+  // Sets Filename for a given CID
+  @Post('fileName')
+  async setFileName(@Body() data: FileNameBody) {
+    return {
+      status: await this.redisClient.set(data.cid, data.fileName),
+    };
   }
 }
