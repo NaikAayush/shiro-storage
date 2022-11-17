@@ -1,6 +1,6 @@
 services:
   redis:
-    command: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning /usr/local/etc/redis/redis.conf
     image: 'redis:7'
     ports:
       - '6379:6379'
