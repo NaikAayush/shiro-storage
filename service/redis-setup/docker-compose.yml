@@ -1,6 +1,6 @@
 services:
   redis:
-    cmd: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning
     image: 'redis:7'
     ports:
       - '6379:6379'
