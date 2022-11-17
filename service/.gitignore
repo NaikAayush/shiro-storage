@@ -37,3 +37,4 @@ lerna-debug.log*
 # Misc
 .env
 .tsbuildinfo
+tsconfig.build.tsbuildinfo
