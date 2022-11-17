@@ -20,9 +20,21 @@ This is the service which reads events on the chain and actually uploads files.
 ## Set up
 
 ### Install dependencies
+
 ```
 yarn
 ```
+
+### Set up Redis
+
+Run redis on the same instance/server as the API. Change password in `redis-conf/redis.conf` if needed.
+```
+cd redis-setup
+docker-compose up -d
+cd ..
+```
+
+See [its README](https://github.com/NaikAayush/shiro-storage/tree/main/service/redis-setup#readme) for more details.
 
 ### Create a `.env` file
 
@@ -32,6 +44,8 @@ QUICKNODE_URL=<URL of your ETH node - could be infura, quicknode, etc.>
 CONTRACT_ADDRESS=<ShiroStore contract address>
 IPFS_GATEWAY_URL=https://<Domain of IPFS deployment>/api/v0
 WEB3STORAGE_TOKEN=<If using web3.storage, provide API Token here>
+SENDGRID_API_KEY=<for sending emails>
+REDIS_PASSWORD=<redis password. default: LongRedisPassword>
 ```
 
 ## Dev server

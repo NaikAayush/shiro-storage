@@ -84,7 +84,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Shiro. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Shiro. Built with Docusaurus. Deployed with <a href="https://github.com/NaikAayush/shiro-storage/tree/main/docs#deployment">Fleek</a>.`,
       },
       prism: {
         theme: lightCodeTheme,
