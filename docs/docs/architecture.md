@@ -13,6 +13,10 @@ With some helpers:
 1. Chainlink token (`LINK`)
 1. Chainlink price feed - mainly `USD/ETH`
 
+## Architecture Diagram
+
+![Shiro Storage Architecture](/img/Shiro-Storage-Architecture.png)
+
 ## Working
 
 - First, the client uploads the file to the [Shiro IPFS relay](./contract-addresses.md#ipfs-relay).
